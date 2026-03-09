@@ -410,6 +410,16 @@ io.on("connection", (socket) => {
     if (partnerSocket?.connected) partnerSocket.emit("message", message);
   });
 
+  socket.on("typing", () => {
+    const partnerSocket = getSocket(partners.get(socket.id));
+    if (partnerSocket?.connected) partnerSocket.emit("typing");
+  });
+
+  socket.on("stopTyping", () => {
+    const partnerSocket = getSocket(partners.get(socket.id));
+    if (partnerSocket?.connected) partnerSocket.emit("stopTyping");
+  });
+
   socket.on("next", () => {
     if (isSocketEventRateLimited(socket.id, "next", MAX_NEXTS_PER_WINDOW)) {
       recordIpAbuse(ip);

@@ -22,8 +22,11 @@ export function Chat({ socket, interests, onStop }) {
   const [slowMatch, setSlowMatch] = useState(false);
   const [confirmEnd, setConfirmEnd] = useState(false);
   const [escStep, setEscStep] = useState(0);
+  const [strangerTyping, setStrangerTyping] = useState(false);
   const bottomRef = useRef(null);
   const timerRef = useRef(null);
+  const typingTimerRef = useRef(null);
+  const iAmTypingRef = useRef(false);
 
   function resetEscFlow() {
     setEscStep(0);
@@ -32,6 +35,9 @@ export function Chat({ socket, interests, onStop }) {
 
   function beginFindMatch() {
     clearTimeout(timerRef.current);
+    clearTimeout(typingTimerRef.current);
+    iAmTypingRef.current = false;
+    setStrangerTyping(false);
     setSlowMatch(false);
     setStatus("searching");
     setMatched(false);
@@ -96,6 +102,7 @@ export function Chat({ socket, interests, onStop }) {
 
     function onPartnerLeft() {
       clearTimeout(timerRef.current);
+      setStrangerTyping(false);
       setSlowMatch(false);
       setStatus("ended");
       setMatched(false);
@@ -111,17 +118,25 @@ export function Chat({ socket, interests, onStop }) {
       ]);
     }
 
+    function onTyping() { setStrangerTyping(true); }
+    function onStopTyping() { setStrangerTyping(false); }
+
     socket.on("matched", onMatched);
     socket.on("message", onMessage);
     socket.on("partnerLeft", onPartnerLeft);
+    socket.on("typing", onTyping);
+    socket.on("stopTyping", onStopTyping);
 
     beginFindMatch();
 
     return () => {
       clearTimeout(timerRef.current);
+      clearTimeout(typingTimerRef.current);
       socket.off("matched", onMatched);
       socket.off("message", onMessage);
       socket.off("partnerLeft", onPartnerLeft);
+      socket.off("typing", onTyping);
+      socket.off("stopTyping", onStopTyping);
     };
   }, [socket]);
 
@@ -170,9 +185,29 @@ export function Chat({ socket, interests, onStop }) {
   function sendMessage() {
     const text = input.trim();
     if (!text || !matched) return;
+    // Clear outgoing typing state immediately on send
+    clearTimeout(typingTimerRef.current);
+    if (iAmTypingRef.current) {
+      socket.emit("stopTyping");
+      iAmTypingRef.current = false;
+    }
     socket.emit("message", text);
     setMessages((prev) => [...prev, { id: uid(), type: "you", text }]);
     setInput("");
+  }
+
+  function handleInputChange(e) {
+    setInput(e.target.value);
+    if (!matched) return;
+    if (!iAmTypingRef.current) {
+      socket.emit("typing");
+      iAmTypingRef.current = true;
+    }
+    clearTimeout(typingTimerRef.current);
+    typingTimerRef.current = setTimeout(() => {
+      socket.emit("stopTyping");
+      iAmTypingRef.current = false;
+    }, 2000);
   }
 
   function handleStop() {
@@ -319,11 +354,23 @@ export function Chat({ socket, interests, onStop }) {
         <div ref={bottomRef} />
       </div>
 
+      {/* ── Typing indicator ── */}
+      {strangerTyping && matched && (
+        <div className="flex shrink-0 items-center gap-1.5 px-4 pb-1 sm:px-6">
+          <span className="text-xs text-muted-foreground">Stranger is typing</span>
+          <span className="flex gap-0.5">
+            <span className="inline-block h-1 w-1 rounded-full bg-muted-foreground animate-bounce [animation-delay:0ms]" />
+            <span className="inline-block h-1 w-1 rounded-full bg-muted-foreground animate-bounce [animation-delay:150ms]" />
+            <span className="inline-block h-1 w-1 rounded-full bg-muted-foreground animate-bounce [animation-delay:300ms]" />
+          </span>
+        </div>
+      )}
+
       {/* ── Input ── */}
       <div className="flex shrink-0 items-center gap-2 border-t border-border px-4 py-3 sm:px-6 pb-safe">
         <Input
           value={input}
-          onChange={(e) => setInput(e.target.value)}
+          onChange={handleInputChange}
           onKeyDown={(e) => e.key === "Enter" && sendMessage()}
           placeholder={matched ? "Message..." : "Waiting for a stranger..."}
           disabled={!matched}
