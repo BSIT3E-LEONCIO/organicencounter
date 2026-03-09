@@ -1,0 +1,72 @@
+@import "tailwindcss";
+
+/* ── Shadcn-style design tokens (Tailwind v4 inline theme) ── */
+@theme inline {
+  --color-background:          var(--background);
+  --color-foreground:          var(--foreground);
+  --color-card:                var(--card);
+  --color-card-foreground:     var(--card-foreground);
+  --color-primary:             var(--primary);
+  --color-primary-foreground:  var(--primary-foreground);
+  --color-secondary:           var(--secondary);
+  --color-secondary-foreground:var(--secondary-foreground);
+  --color-muted:               var(--muted);
+  --color-muted-foreground:    var(--muted-foreground);
+  --color-accent:              var(--accent);
+  --color-accent-foreground:   var(--accent-foreground);
+  --color-border:              var(--border);
+  --color-input:               var(--input);
+  --color-ring:                var(--ring);
+  --color-destructive:         var(--destructive);
+  --radius-sm:  calc(var(--radius) - 4px);
+  --radius-md:  calc(var(--radius) - 2px);
+  --radius-lg:  var(--radius);
+}
+
+/* ── Dark palette ── */
+:root {
+  color-scheme: dark;
+  --background:           oklch(0.09  0 0);
+  --foreground:           oklch(0.985 0 0);
+  --card:                 oklch(0.12  0 0);
+  --card-foreground:      oklch(0.985 0 0);
+  --primary:              oklch(0.985 0 0);
+  --primary-foreground:   oklch(0.09  0 0);
+  --secondary:            oklch(0.17  0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted:                oklch(0.17  0 0);
+  --muted-foreground:     oklch(0.556 0 0);
+  --accent:               oklch(0.17  0 0);
+  --accent-foreground:    oklch(0.985 0 0);
+  --border:               oklch(0.22  0 0);
+  --input:                oklch(0.22  0 0);
+  --ring:                 oklch(0.4   0 0);
+  --destructive:          oklch(0.704 0.191 22.216);
+  --radius: 0.5rem;
+}
+
+*,
+::before,
+::after {
+  box-sizing: border-box;
+  border-color: var(--border);
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* iOS safe-area helpers */
+:root {
+  --safe-top:    env(safe-area-inset-top,    0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --navbar-h:    calc(3.5rem + var(--safe-top));
+}
+
+.pt-nav  { padding-top:  var(--navbar-h); }
+.pb-safe { padding-bottom: max(1rem, var(--safe-bottom)); }

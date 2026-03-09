@@ -1,0 +1,12 @@
+{
+  "name": "random-chat",
+  "private": true,
+  "version": "1.0.0",
+  "dependencies": {
+    "concurrently": "^9.2.1"
+  },
+  "scripts": {
+    "install:all": "npm install --no-fund --no-audit && npm --prefix server install --no-fund --no-audit && npm --prefix client install --no-fund --no-audit",
+    "dev": "npm run install:all && concurrently -k -n server,client -c cyan,magenta \"npm --prefix server run start\" \"npm --prefix client run dev\""
+  }
+}

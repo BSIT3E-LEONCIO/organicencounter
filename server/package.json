@@ -1,0 +1,18 @@
+{
+  "name": "random-chat-server",
+  "version": "1.0.0",
+  "private": true,
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^17.3.1",
+    "express": "^4.21.2",
+    "express-rate-limit": "^8.3.0",
+    "helmet": "^8.1.0",
+    "random-chat": "file:..",
+    "socket.io": "^4.8.1"
+  }
+}
