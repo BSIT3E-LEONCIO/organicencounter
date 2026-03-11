@@ -70,3 +70,16 @@ body {
 
 .pt-nav  { padding-top:  var(--navbar-h); }
 .pb-safe { padding-bottom: max(1rem, var(--safe-bottom)); }
+
+/* ── Topic Spinner reel animations ── */
+@keyframes reel-tick {
+  0%   { opacity: 0; transform: translateY(10px) scale(0.92); }
+  100% { opacity: 1; transform: translateY(0)    scale(1); }
+}
+@keyframes reel-land {
+  0%   { opacity: 0; transform: scale(0.88); }
+  60%  { opacity: 1; transform: scale(1.06); }
+  100% { opacity: 1; transform: scale(1); }
+}
+.reel-center-tick  { animation: reel-tick 90ms ease-out both; }
+.reel-center-land  { animation: reel-land 280ms cubic-bezier(.34,1.56,.64,1) both; }

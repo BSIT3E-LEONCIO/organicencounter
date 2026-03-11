@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
+import { TopicSpinner } from "./TopicSpinner";
 
 const SLOW_MATCH_MS = 20_000;
 const uid = () => `${Date.now()}-${Math.random()}`;
@@ -23,6 +24,7 @@ export function Chat({ socket, interests, onStop }) {
   const [confirmEnd, setConfirmEnd] = useState(false);
   const [escStep, setEscStep] = useState(0);
   const [strangerTyping, setStrangerTyping] = useState(false);
+  const [showSpinner, setShowSpinner] = useState(false);
   const bottomRef = useRef(null);
   const timerRef = useRef(null);
   const typingTimerRef = useRef(null);
@@ -118,14 +120,27 @@ export function Chat({ socket, interests, onStop }) {
       ]);
     }
 
-    function onTyping() { setStrangerTyping(true); }
-    function onStopTyping() { setStrangerTyping(false); }
+    function onTopicResult({ topic }) {
+      if (typeof topic !== "string" || !topic.trim()) return;
+      setMessages((prev) => [
+        ...prev,
+        { id: uid(), type: "system", text: `🎡 Topic: "${topic.trim()}"` },
+      ]);
+    }
+
+    function onTyping() {
+      setStrangerTyping(true);
+    }
+    function onStopTyping() {
+      setStrangerTyping(false);
+    }
 
     socket.on("matched", onMatched);
     socket.on("message", onMessage);
     socket.on("partnerLeft", onPartnerLeft);
     socket.on("typing", onTyping);
     socket.on("stopTyping", onStopTyping);
+    socket.on("topicResult", onTopicResult);
 
     beginFindMatch();
 
@@ -137,6 +152,7 @@ export function Chat({ socket, interests, onStop }) {
       socket.off("partnerLeft", onPartnerLeft);
       socket.off("typing", onTyping);
       socket.off("stopTyping", onStopTyping);
+      socket.off("topicResult", onTopicResult);
     };
   }, [socket]);
 
@@ -236,6 +252,13 @@ export function Chat({ socket, interests, onStop }) {
 
   return (
     <div className="flex h-[100dvh] flex-col pt-nav">
+      {showSpinner && (
+        <TopicSpinner
+          socket={socket}
+          matched={matched}
+          onClose={() => setShowSpinner(false)}
+        />
+      )}
       {/* ── Toolbar ── */}
       <div className="flex shrink-0 items-center justify-between border-b border-border px-4 py-2.5 sm:px-6">
         <div className="flex items-center gap-2">
@@ -260,6 +283,16 @@ export function Chat({ socket, interests, onStop }) {
         </div>
 
         <div className="flex items-center gap-2">
+          {status === "connected" && (
+            <Button
+              size="sm"
+              onClick={() => setShowSpinner(true)}
+              title="Spin for a debate topic"
+              className="bg-white text-gray-800 hover:bg-gray-100 border border-gray-200"
+            >
+              Topic Spinner
+            </Button>
+          )}
           <Button variant="ghost" size="sm" onClick={handleStop}>
             <span className="hidden sm:inline">← </span>Back
           </Button>
@@ -277,24 +310,6 @@ export function Chat({ socket, interests, onStop }) {
               {i}
             </span>
           ))}
-        </div>
-      )}
-
-      {confirmEnd && (
-        <div className="mx-4 mt-4 rounded-lg border border-border bg-card px-4 py-3 sm:mx-6">
-          <p className="text-sm text-foreground">End this conversation?</p>
-          <p className="mt-1 text-xs text-muted-foreground hidden sm:block">
-            Shortcut: ESC once to request end, ESC again to confirm, ESC again
-            to find match.
-          </p>
-          <div className="mt-3 flex items-center gap-2">
-            <Button size="sm" variant="secondary" onClick={handleCancelEnd}>
-              Cancel
-            </Button>
-            <Button size="sm" variant="destructive" onClick={handleConfirmEnd}>
-              Confirm End
-            </Button>
-          </div>
         </div>
       )}
 
@@ -357,7 +372,9 @@ export function Chat({ socket, interests, onStop }) {
       {/* ── Typing indicator ── */}
       {strangerTyping && matched && (
         <div className="flex shrink-0 items-center gap-1.5 px-4 pb-1 sm:px-6">
-          <span className="text-xs text-muted-foreground">Stranger is typing</span>
+          <span className="text-xs text-muted-foreground">
+            Stranger is typing
+          </span>
           <span className="flex gap-0.5">
             <span className="inline-block h-1 w-1 rounded-full bg-muted-foreground animate-bounce [animation-delay:0ms]" />
             <span className="inline-block h-1 w-1 rounded-full bg-muted-foreground animate-bounce [animation-delay:150ms]" />
@@ -384,7 +401,7 @@ export function Chat({ socket, interests, onStop }) {
         >
           Send
         </Button>
-        {status === "connected" && (
+        {status === "connected" && !confirmEnd && (
           <Button
             variant="outline"
             size="sm"
@@ -393,6 +410,26 @@ export function Chat({ socket, interests, onStop }) {
           >
             End Chat
           </Button>
+        )}
+        {status === "connected" && confirmEnd && (
+          <>
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={handleCancelEnd}
+              className="shrink-0"
+            >
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              variant="destructive"
+              onClick={handleConfirmEnd}
+              className="shrink-0 font-semibold"
+            >
+              Confirm End
+            </Button>
+          </>
         )}
         {status !== "connected" && (
           <Button
