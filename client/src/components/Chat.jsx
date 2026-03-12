@@ -25,6 +25,7 @@ export function Chat({ socket, interests, onStop }) {
   const [escStep, setEscStep] = useState(0);
   const [strangerTyping, setStrangerTyping] = useState(false);
   const [showSpinner, setShowSpinner] = useState(false);
+  const [companion, setCompanion] = useState(null);
   const bottomRef = useRef(null);
   const timerRef = useRef(null);
   const typingTimerRef = useRef(null);
@@ -44,6 +45,7 @@ export function Chat({ socket, interests, onStop }) {
     setStatus("searching");
     setMatched(false);
     setCommon([]);
+    setCompanion(null);
     resetEscFlow();
     setMessages([
       { id: uid(), type: "system", text: "Looking for a stranger..." },
@@ -58,6 +60,7 @@ export function Chat({ socket, interests, onStop }) {
     setMatched(false);
     setStatus("ended");
     setCommon([]);
+    setCompanion(null);
     setConfirmEnd(false);
     setEscStep(2);
     setMessages((prev) => [
@@ -78,20 +81,26 @@ export function Chat({ socket, interests, onStop }) {
 
   // Socket event listeners
   useEffect(() => {
-    function onMatched({ commonInterests: ci = [] }) {
+    function onMatched({
+      commonInterests: ci = [],
+      isAiCompanion = false,
+      companionProfile = null,
+    }) {
       clearTimeout(timerRef.current);
       setSlowMatch(false);
       setStatus("connected");
       setMatched(true);
       setCommon(ci);
+      setCompanion(isAiCompanion ? companionProfile : null);
       resetEscFlow();
       setMessages((prev) => [
         ...prev,
         {
           id: uid(),
           type: "system",
-          text:
-            ci.length > 0
+          text: isAiCompanion
+            ? `You are now connected.`
+            : ci.length > 0
               ? `Connected! You both like: ${ci.join(", ")}`
               : "You are now connected.",
         },
@@ -108,6 +117,7 @@ export function Chat({ socket, interests, onStop }) {
       setSlowMatch(false);
       setStatus("ended");
       setMatched(false);
+      setCompanion(null);
       setConfirmEnd(false);
       setEscStep(2);
       setMessages((prev) => [
@@ -231,6 +241,7 @@ export function Chat({ socket, interests, onStop }) {
     setMatched(false);
     setStatus("searching");
     setCommon([]);
+    setCompanion(null);
     resetEscFlow();
     socket.emit("stop");
     onStop();
@@ -251,7 +262,7 @@ export function Chat({ socket, interests, onStop }) {
   }
 
   return (
-    <div className="flex h-[100dvh] flex-col pt-nav">
+    <div className="flex h-dvh flex-col pt-nav">
       {showSpinner && (
         <TopicSpinner
           socket={socket}
@@ -373,7 +384,7 @@ export function Chat({ socket, interests, onStop }) {
       {strangerTyping && matched && (
         <div className="flex shrink-0 items-center gap-1.5 px-4 pb-1 sm:px-6">
           <span className="text-xs text-muted-foreground">
-            Stranger is typing
+            {companion ? `${companion.name} is typing` : "Stranger is typing"}
           </span>
           <span className="flex gap-0.5">
             <span className="inline-block h-1 w-1 rounded-full bg-muted-foreground animate-bounce [animation-delay:0ms]" />
@@ -389,7 +400,13 @@ export function Chat({ socket, interests, onStop }) {
           value={input}
           onChange={handleInputChange}
           onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-          placeholder={matched ? "Message..." : "Waiting for a stranger..."}
+          placeholder={
+            matched
+              ? companion
+                ? `Message ${companion.name}...`
+                : "Message..."
+              : "Waiting for a stranger..."
+          }
           disabled={!matched}
           className="flex-1"
           autoFocus
